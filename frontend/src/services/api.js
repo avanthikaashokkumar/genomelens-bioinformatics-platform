@@ -1,0 +1,2 @@
+const API_URL=import.meta.env.VITE_API_URL||'http://localhost:8000';
+export async function analyzeSequence(payload){let response;try{response=await fetch(`${API_URL}/api/analyze`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}catch{throw new Error('GenomeLens could not reach the analysis server. Check that the backend is running.')}const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'The analysis could not be completed.');return data}

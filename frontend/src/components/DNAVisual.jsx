@@ -1,0 +1,1 @@
+export default function DNAVisual(){return <div className="dna-visual" aria-label="Stylized DNA sequence illustration">{Array.from({length:11},(_,i)=><div className="dna-rung" key={i} style={{'--i':i}}><i/><span>{i%4===0?'A':i%4===1?'G':i%4===2?'T':'C'}—{i%4===0?'T':i%4===1?'C':i%4===2?'A':'G'}</span><b/></div>)}</div>}

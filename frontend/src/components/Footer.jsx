@@ -1,0 +1,1 @@
+import {Dna} from 'lucide-react'; export default function Footer(){return <footer><div className="brand"><Dna size={18}/> GenomeLens</div><p>Educational sequence analysis. Not for medical diagnosis.</p><p>Built for curious biologists · MIT License</p></footer>}
