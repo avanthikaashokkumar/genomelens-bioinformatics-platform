@@ -47,5 +47,9 @@ it('links the footer to the Learn sources section', () => {
       <App />
     </MemoryRouter>,
   );
-  expect(screen.getByRole('link', { name: 'Learning Sources' })).toHaveAttribute('href', '/learn#sources');
+
+  expect(screen.getByRole('link', { name: 'Learning Sources' })).toHaveAttribute(
+    'href',
+    '/learn#sources',
+  );
 });
