@@ -6,8 +6,8 @@ GenomeLens is a full-stack educational bioinformatics platform for analyzing DNA
 
 ## Features
 
-- Raw DNA, FASTA paste, and `.fasta`, `.fa`, or `.txt` upload
-- Validated A/T/G/C/N input up to 1,000,000 cleaned bases
+- Raw DNA, single-record FASTA paste, and `.fasta`, `.fa`, or `.txt` upload
+- Validated A/T/G/C/N input up to 100,000 cleaned nucleotides for complete analysis
 - Counts, percentages, GC/AT content, ratio, molecular weight, Tm, and complexity
 - Complement, reverse complement, transcription, primary and six-frame translation
 - Six-frame candidate ORF detection with selectable minimum length
@@ -21,7 +21,11 @@ GenomeLens is a full-stack educational bioinformatics platform for analyzing DNA
 
 ## Scientific methods
 
-GenomeLens uses NCBI standard genetic code 1. Positions shown to users are one-based and inclusive. `N` is accepted; ambiguous codons translate to `X`. Incomplete trailing codons are ignored. ORFs begin at `ATG` and extend to the first in-frame `TAA`, `TAG`, or `TGA`, or to the sequence boundary when no stop exists. Short-sequence Tm uses the Wallace rule; longer sequences use Biopython's GC empirical formula (valueset 7). Molecular weight is an average-residue estimate.
+GenomeLens accepts exactly one FASTA record and rejects multi-record input rather than joining biological records. Complete analyses are limited to 100,000 cleaned nucleotides; the smaller sequence-only API endpoints accept up to 1,000,000. Positions are one-based and inclusive on the submitted sequence, including mapped reverse-strand motif and ORF coordinates. Palindromic motif sites are returned once as unique physical intervals.
+
+GenomeLens uses NCBI standard genetic code 1 and ATG as its only ORF start codon. Ambiguous codons translate to `X`; incomplete trailing codons are ignored. The ORF finder scans each of six frames once, takes the first ATG after a stop, ignores nested starts, and ends a candidate at the next in-frame `TAA`, `TAG`, or `TGA` or sequence boundary. It returns at most 500 ORFs and 100,000 total protein amino acids, and reports truncation in response metadata. ORFs are candidate coding regions, not confirmed genes or evidence of expression or function.
+
+For unambiguous input, molecular weight is Biopython's value for single-stranded, linear DNA with terminal groups included. Molecular weight and Tm are unavailable when `N` is present. Unambiguous sequences under 14 nucleotides use Biopython's Wallace Tm rule; longer sequences use its GC empirical formula (valueset 7). Base-composition entropy has a maximum of 2 bits for A/T/G/C and approximately 2.322 bits when N is present; it is not a complete measure of biological complexity.
 
 These calculations describe sequence features. They do not identify a gene, prove function, validate a laboratory protocol, or support medical diagnosis.
 
@@ -101,7 +105,7 @@ No API key is required. Never put private credentials in `VITE_` variables; Vite
 ## Tests and quality checks
 
 ```bash
-cd backend && pytest
+cd backend && python -m pytest
 cd frontend && npm test
 cd frontend && npm run lint
 cd frontend && npm run build
@@ -132,11 +136,15 @@ Import the repository, set root directory to `frontend`, framework preset to Vit
 
 ## Privacy and security
 
-Inputs are strictly validated and analyzed in memory. GenomeLens does not write uploaded sequence files or persist submitted sequence content by default. Browser file filters are convenience controls; the backend remains the source of validation. Do not submit sensitive genomic data to a deployment you do not administer.
+Inputs are strictly validated and analyzed in memory. GenomeLens does not intentionally write uploaded sequence files or submitted sequence content to an application database or file. Hosting, network, and observability providers may retain request metadata or logs according to their configuration and policies. Browser file filters are convenience controls; the backend remains the source of validation. Do not submit sensitive genomic data to a deployment you do not administer.
 
 ## Limitations
 
-GenomeLens does not perform similarity searches, gene annotation, quality-score analysis, circular genome handling, alternative-code translation, clinical interpretation, or experimental confirmation. The enzyme set is intentionally small. Tm and mass are educational estimates whose real values depend on chemical and laboratory conditions.
+GenomeLens does not perform similarity searches, gene annotation, quality-score analysis, circular genome handling, alternative-code translation, expression measurement, clinical interpretation, or experimental confirmation. The enzyme set is intentionally small. Motifs may occur by chance, predicted restriction sites may not cleave in the laboratory, divisibility by three does not establish a meaningful frame, and sequence analysis alone cannot establish medical significance. Tm and mass assumptions are documented above.
+
+## Learning sources
+
+The Learn page groups 11 authoritative references from NHGRI, NCBI, EMBL-EBI, and Biopython under **Sources & Further Reading**. Every major lesson links to one or two relevant references so learners can verify definitions, methods, and limitations without crowded inline citations.
 
 ## Roadmap
 

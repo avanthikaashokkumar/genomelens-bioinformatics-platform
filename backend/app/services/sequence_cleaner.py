@@ -1,7 +1,12 @@
 import re
 
 MAX_SEQUENCE_LENGTH = 1_000_000
+MAX_ANALYSIS_SEQUENCE_LENGTH = 100_000
 VALID_BASES = set("ATGCN")
+MULTI_FASTA_ERROR = (
+    "GenomeLens currently supports one FASTA record at a time. "
+    "Please submit or upload a single sequence."
+)
 
 class SequenceValidationError(ValueError):
     pass
@@ -9,9 +14,16 @@ class SequenceValidationError(ValueError):
 def clean_sequence(raw: str) -> tuple[str, bool, str | None]:
     if not raw or not raw.strip():
         raise SequenceValidationError("Enter a DNA sequence before running an analysis.")
+
     lines = raw.strip().splitlines()
-    header = lines[0][1:].strip() if lines and lines[0].lstrip().startswith(">") else None
-    sequence_lines = [line for line in lines if not line.lstrip().startswith(">")]
+    header_indexes = [index for index, line in enumerate(lines) if line.lstrip().startswith(">")]
+    if len(header_indexes) > 1:
+        raise SequenceValidationError(MULTI_FASTA_ERROR)
+    if header_indexes and header_indexes[0] != 0:
+        raise SequenceValidationError("A FASTA description line must appear before the sequence data.")
+
+    header = lines[0].lstrip()[1:].strip() if header_indexes else None
+    sequence_lines = lines[1:] if header_indexes else lines
     sequence = re.sub(r"\s+", "", "".join(sequence_lines)).upper()
     invalid = sorted(set(sequence) - VALID_BASES)
     if invalid:

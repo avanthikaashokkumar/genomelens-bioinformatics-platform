@@ -3,4 +3,42 @@ const result={sequence:'ATGAAATAA',metadata:{fasta_header_detected:false,minimum
 beforeEach(()=>{global.fetch=vi.fn()});
 it('loads example data and resets returned results',async()=>{render(<MemoryRouter><DNALab/></MemoryRouter>);fireEvent.change(screen.getByLabelText('Load example sequence'),{target:{value:'0'}});expect(screen.getByLabelText('DNA or FASTA sequence').value).toContain('ATG');fetch.mockResolvedValue({ok:true,json:async()=>result});fireEvent.click(screen.getByRole('button',{name:/run complete analysis/i}));expect(screen.getByText(/analyzing sequence/i)).toBeInTheDocument();await screen.findByText('Your sequence, decoded.');fireEvent.click(screen.getByRole('button',{name:/reset analysis/i}));expect(screen.queryByText('Your sequence, decoded.')).not.toBeInTheDocument()});
 it('disables submit and displays invalid DNA status',()=>{render(<MemoryRouter><DNALab/></MemoryRouter>);fireEvent.change(screen.getByLabelText('DNA or FASTA sequence'),{target:{value:'ATGB'}});expect(screen.getByText('Invalid: B')).toBeInTheDocument();expect(screen.getByRole('button',{name:/run complete analysis/i})).toBeDisabled()});
+it('accepts one FASTA record with whitespace before its header',()=>{render(<MemoryRouter><DNALab/></MemoryRouter>);fireEvent.change(screen.getByLabelText('DNA or FASTA sequence'),{target:{value:'   >sample\nATGC'}});expect(screen.getByText('Valid DNA alphabet and single-record format')).toBeInTheDocument();expect(screen.getByRole('button',{name:/run complete analysis/i})).toBeEnabled()});
+it('rejects a header-only FASTA record',()=>{render(<MemoryRouter><DNALab/></MemoryRouter>);fireEvent.change(screen.getByLabelText('DNA or FASTA sequence'),{target:{value:'>sample'}});expect(screen.getByText('The input contains a FASTA header but no DNA sequence.')).toBeInTheDocument();expect(screen.getByRole('button',{name:/run complete analysis/i})).toBeDisabled()});
 it('shows backend validation errors',async()=>{fetch.mockResolvedValue({ok:false,json:async()=>({detail:'Sequence is invalid.'})});render(<MemoryRouter><DNALab/></MemoryRouter>);fireEvent.change(screen.getByLabelText('DNA or FASTA sequence'),{target:{value:'ATGC'}});fireEvent.click(screen.getByRole('button',{name:/run complete analysis/i}));expect(await screen.findByRole('alert')).toHaveTextContent('Sequence is invalid.')});
+
+it.each([
+  ['multiple FASTA records', '>one\nATG\n>two\nTAA', '', '10'],
+  ['an invalid motif', 'ATGC', 'ATN', '10'],
+  ['an invalid ORF range', 'ATGC', '', '0'],
+  ['oversized sequence input', 'A'.repeat(100001), '', '10'],
+])('disables analysis for %s', (_, sequence, motif, minimumOrf) => {
+  render(<MemoryRouter><DNALab /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText('DNA or FASTA sequence'), { target: { value: sequence } });
+  if (motif) fireEvent.change(screen.getByLabelText('Optional DNA motif'), { target: { value: motif } });
+  if (minimumOrf !== '10') fireEvent.change(screen.getByLabelText(/Minimum ORF length/), { target: { value: minimumOrf } });
+  expect(screen.getByRole('button', { name: /run complete analysis/i })).toBeDisabled();
+});
+
+it('cancels an active request when reset is selected', () => {
+  fetch.mockImplementation((_, options) => new Promise((resolve, reject) => {
+    options.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+  }));
+  render(<MemoryRouter><DNALab /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText('DNA or FASTA sequence'), { target: { value: 'ATGC' } });
+  fireEvent.click(screen.getByRole('button', { name: /run complete analysis/i }));
+  fireEvent.click(screen.getByRole('button', { name: /reset analysis/i }));
+  expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+it('cancels an active request when the lab unmounts', () => {
+  fetch.mockImplementation((_, options) => new Promise((resolve, reject) => {
+    options.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+  }));
+  const view = render(<MemoryRouter><DNALab /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText('DNA or FASTA sequence'), { target: { value: 'ATGC' } });
+  fireEvent.click(screen.getByRole('button', { name: /run complete analysis/i }));
+  view.unmount();
+  expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+});

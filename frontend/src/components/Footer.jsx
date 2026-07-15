@@ -1,4 +1,5 @@
 import { Dna } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const externalLinkProps = {
   target: '_blank',
@@ -32,6 +33,7 @@ export default function Footer() {
         </div>
 
         <nav className="footer-links" aria-label="Creator and project links">
+          <Link to="/learn#sources">Learning Sources</Link>
           <a
             href="https://www.linkedin.com/in/avanthika-ashokkumar-819445342"
             {...externalLinkProps}

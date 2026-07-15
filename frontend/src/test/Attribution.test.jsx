@@ -40,3 +40,12 @@ it('shows the founder section and connection links on the About page', () => {
   expect(founderLinks).toHaveTextContent('GitHub');
   expect(founderLinks).toHaveTextContent('GenomeLens repository');
 });
+
+it('links the footer to the Learn sources section', () => {
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('link', { name: 'Learning Sources' })).toHaveAttribute('href', '/learn#sources');
+});
